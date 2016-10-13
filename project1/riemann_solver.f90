@@ -24,8 +24,6 @@ subroutine solve_riemann(WL, WR, gam, WS, rhosl, rhosr)
         df  = dflfrdu(prs, WL, WR, gam)
         pnext = prs - f/df
         resi = abs(pnext - prs) / prs
-
-        write(*,'(2(A,E23.15))') 'prs', prs, 'resi', resi
     end do
 
     prs = pnext
@@ -33,7 +31,7 @@ subroutine solve_riemann(WL, WR, gam, WS, rhosl, rhosr)
 
     ! Solve for u*, rhosl, and rhosr given p*
 
-    ! Left
+    ! Left of CS
     if(prs > WL(3)) then    ! Left shock
         fl =       fshock(prs, WL, gam)
         rhosl = evalrho_hugoniot(WL(1), prs/WL(3), gam)
@@ -41,7 +39,7 @@ subroutine solve_riemann(WL, WR, gam, WS, rhosl, rhosr)
         fl = frarefaction(prs, WL, gam)
         rhosl = evalrho_isentropic(WL(1), prs/WL(3), gam)
     end if
-    ! Right
+    ! Right of CS
     if(prs > WR(3)) then    ! Right shock
         fr =       fshock(prs, WR, gam)
         rhosr = evalrho_hugoniot(WR(1), prs/WR(3), gam)
@@ -59,23 +57,14 @@ function acoustic_approx(WL, WR, gam) result(p0)
     implicit none
     real(p2), intent(in)  :: WL(3), WR(3), gam
     real(p2)              :: p0
-    real(p2)              :: rr,ur,pr,rl,ul,pl,cr,cl
-
-    rr = WR(1)
-    ur = WR(2)
-    pr = WR(3)
-    rl = WL(1)
-    ul = WL(2)
-    pl = WL(3)
+    real(p2)              :: cr,cl
 
     cr = evalc(WR, gam)
     cl = evalc(WL, gam)
 
-    p0 = pl*rr*cr + pr*rl*cl + (ul-cr)*(rl*cl)*(rr*cr)
-    p0 = p0 / (rl*cl + rr*cr)
-
+    p0 = WL(3)*WR(1)*cr + WR(3)*WL(1)*cl + (WL(2)-cr)*(WL(1)*cl)*(WR(1)*cr)
+    p0 = p0 / (WL(1)*cl + WR(1)*cr)
     if(p0.le.0) p0 = 1e-3
-
     return
 end function acoustic_approx
 !***************************************************************    
@@ -109,7 +98,6 @@ function fshock(pin, WK, gam) result(fs)
     implicit none
     real(p2), intent(in)  :: pin, WK(3), gam
     real(p2)              :: fs
-
     fs = 2.0d0 / ((gam + 1.0d0) * WK(1)) &
          / (pin + (gam-1.0d0)/(gam+1.0d0) * WK(3))
     fs = sqrt(fs)
@@ -120,13 +108,10 @@ end function fshock
 function frarefaction(pin, WK, gam) result(fr)
     implicit none
     real(p2), intent(in)  :: pin, WK(3), gam
-    real(p2)              :: fr
-    real(p2)              :: cknown
-
+    real(p2)              :: fr, cknown
     cknown = evalc(WK, gam)
     fr = (2.0d0*cknown / (gam-1.0d0)) &
          * ((pin/WK(3))**((gam-1.0d0)/(2.0d0*gam)) - 1.0d0)
-
     return
 end function frarefaction
 !***************************************************************    
@@ -134,33 +119,22 @@ function dfshock(pin, WK, gam) result(dfs)
     implicit none
     real(p2), intent(in)  :: pin, WK(3), gam
     real(p2)              :: dfs
-
     dfs = 2.0d0 / ((gam + 1.0d0) * WK(1)) &
           / (pin + (gam-1.0d0)/(gam+1.0d0) * WK(3))
-    if(dfs.ge.0) then
-        dfs = sqrt(dfs)
-    else
-        write(*,*) 'Negative fshock sqrt', dfs
-        stop
-    end if
+    dfs = sqrt(dfs)
     dfs = (1.0d0 - (pin - WK(3)) &
           / (2.0d0*(pin + (gam-1.0d0)/(gam+1.0d0) * WK(3)))) &
           * dfs
-
     return
 end function dfshock
 !***************************************************************    
 function dfrarefaction(pin, WK, gam) result(dfr)
     implicit none
     real(p2), intent(in)  :: pin, WK(3), gam
-    real(p2)              :: dfr
-    real(p2)              :: cknown
-
+    real(p2)              :: dfr, cknown
     cknown = evalc(WK, gam)
-
     dfr = (1.0d0 / (WK(1)*cknown)) &
           * (pin/WK(3))**(-(gam+1.0d0)/(2.0d0*gam))
-
     return
 end function dfrarefaction
 !***************************************************************    
