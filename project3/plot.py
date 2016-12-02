@@ -132,14 +132,16 @@ for i in range(nt):
     fname[i] = 'size%d'%(i+1)
     
 print fname
+nx = 75
 for caseid in range(nt):
     inname = fname[caseid] + '.dat'
 
     t, p, x = np.loadtxt(inname, dtype = np.float64, skiprows=1, unpack=True)
 
 #   axarr[0].set_title(fname[caseid])
+    nx = nx*2
 
-    plt.plot(t, p, '-',mfc='none',ms=3, label='size = %d'%caseid)
+    plt.plot(t, p, '-',mfc='none',ms=3, label='size = %d'%nx)
     plt.ylabel(r'p')
     plt.xlabel(r't')
 
